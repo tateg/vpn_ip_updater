@@ -27,14 +27,15 @@ class VPNIPUpdater
 
 	# Filter peer list for specified peer and get current IP for that peer
 	def get_peer_current_ip
-		@peers.each do |list|
-			list.each do |k, v|
-				if :name == ARGV.third
-					@current_peer_ip = :publicIp
-				end
+		@peers.each do |peer|
+			if peer["name"] == ARGV.third
+				@current_peer_ip = peer["publicIp"]
 			end
 		end
-		puts @current_peer_ip
+	end
+
+	def update_peer_ip
+
 	end
 
 end
