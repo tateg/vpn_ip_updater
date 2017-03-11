@@ -7,8 +7,11 @@ require 'open-uri'
 require 'dashboard-api'
 
 class VPNIPUpdater
+	attr_reader :peers, :ip, :current_peer_ip
+
 	# Setup API connection on initialize
 	def initialize(api_key)
+
 		connect_api(api_key)
 	end
 
@@ -36,6 +39,7 @@ class VPNIPUpdater
 				@current_peer_ip = peer["publicIp"]
 			end
 		end
+		return @current_peer_ip
 	end
 
 	# Update public IP for that peer if it does not match the current one
