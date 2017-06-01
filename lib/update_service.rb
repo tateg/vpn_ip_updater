@@ -4,9 +4,12 @@
 # Written by Tate Galbraith
 # June 2017
 
-require_relative 'vpn_ip_updater_refactor.rb'
+require './vpn_ip_updater_refactor.rb'
 require 'colorize'
 require 'optparse'
+
+# Show the help screen if no arguments are provided
+ARGV << "-h" if ARGV.empty?
 
 options = {}
 
@@ -20,7 +23,7 @@ OptionParser.new do |parser|
   parser.on("-h", "--help", "Show this help message") do ||
     puts parser
   end
-  parser.on("-k", "--api-key KEY", "Dashboard user API key (Required)") do |k|
+  parser.on("-k", "--api-key KEY", "Dashboard user API key") do |k|
     options[:key] = k
   end
   parser.on("-o", "--organization ID", "Organization ID string") do |o|
@@ -33,9 +36,25 @@ OptionParser.new do |parser|
     options[:interval] = i
   end
 
-  parser.on_tail("-h", "--help", "Show this help message") do
-    puts parser
-    exit
-  end
-
 end.parse!
+
+# Instantiate updater if API key present
+updater = Updater.new(options[:key]) if options.key?(:key)
+
+# Return organization list if only API key is provided
+if options.key?(:key) and !options.key?(:organization)
+  puts "Organizations associated with that API key:".green
+  puts updater.get_organizations
+end
+
+# Return list of VPN peers if API key and org ID provided
+if options.key?(:key) and options.key?(:organization) and !options.key?(:peer)
+  puts "Third-party VPN peers in that organization:".green
+  puts updater.get_vpn_peers(options[:organization])
+end
+
+# Update peer if all three arguments are provided
+if ([:key, :organization, :peer].all? {|k| options.key? k})
+  puts "Updating named VPN peer public IP".yellow
+  updater.update_vpn_peer_ip(options[:organization], options[:peer])
+end
