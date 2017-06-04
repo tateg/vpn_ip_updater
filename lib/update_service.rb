@@ -43,6 +43,10 @@ OptionParser.new do |parser|
   parser.on("-i", "--update-interval SECONDS", Integer, "Number of seconds between IP checks") do |i|
     options[:interval] = i
   end
+  parser.separator ""
+  parser.on("-j", "--json", "Output results as raw JSON") do |j|
+    options[:json] = j
+  end
 
   parser.separator ""
 end.parse!
@@ -53,26 +57,39 @@ updater = Updater.new(options[:key]) if options.key?(:key)
 # Return organization list if only API key is provided
 if options.key?(:key) and !options.key?(:organization)
   puts "Organizations associated with that API key:".green
-  puts updater.get_organizations
+  if options.key?(:json)
+    puts updater.get_organizations("GET_JSON")
+  else
+    updater.get_organizations.each do |a|
+      puts "Name: \"#{a["name"]}\" => ID: #{a["id"]}"
+    end
+  end
 end
 
 # Return list of VPN peers if API key and org ID provided
 if options.key?(:key) and options.key?(:organization) and !options.key?(:peer)
   puts "Third-party VPN peers in that organization:".green
-  puts updater.get_vpn_peers(options[:organization])
+  if options.key?(:json)
+    puts updater.get_vpn_peers(options[:organization], "GET_JSON")
+  else
+    updater.get_vpn_peers(options[:organization]).each do |a|
+      puts "Name: \"#{a["name"]}\" => IP: #{a["publicIp"]}"
+    end
+  end
 end
 
 # Update peer one time if all three arguments except interval are provided
 if ([:key, :organization, :peer].all? {|k| options.key? k}) and !options.key?(:interval)
   puts "Updating named VPN peer public IP".yellow
-  updater.update_vpn_peer_ip(options[:organization], options[:peer])
+  puts updater.update_vpn_peer_ip(options[:organization], options[:peer])
 end
 
 # Update peer on loop at interval if all four arguments provided
 if ([:key, :organization, :peer, :interval].all? {|k| options.key? k})
   loop do
     puts "Updating named VPN peer public IP on #{options[:interval]} second interval".yellow
-    updater.update_vpn_peer_ip(options[:organization], options[:peer])
+    puts @loop_update = updater.update_vpn_peer_ip(options[:organization], options[:peer])
+    exit if @loop_update.include? "VPN peer not found"
     sleep options[:interval]
   end
 end
