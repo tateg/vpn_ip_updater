@@ -20,11 +20,11 @@ There is additional functionality built into the service as well. You can get in
     + If API key, org ID and peer name is provided that peer public IP will be updated
     + If API key, org ID, peer name and interval is provided that peer will be updated on interval
 
-    -h, --help                       Show this help message
-    -k, --api-key KEY                Dashboard user API key
-    -o, --organization ID            Organization ID string
-    -p, --peer NAME                  VPN peer name to update
-    -i, --update-interval SECONDS    Number of seconds between IP checks
+   + -h, --help                       Show this help message
+   + -k, --api-key KEY                Dashboard user API key
+   + -o, --organization ID            Organization ID string
+   + -p, --peer NAME                  VPN peer name to update
+   + -i, --update-interval SECONDS    Number of seconds between IP checks
 
-    -j, --json                       Output results as raw JSON
+   + -j, --json                       Output results as raw JSON
 
