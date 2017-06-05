@@ -65,7 +65,7 @@ class Updater
   def check_updated_peers(peers)
     peers.each do |peer|
       if peer["publicIp"] == @current_ip
-        return "Peer public IP successfully updated to (#{peer["publicIp"].green})"
+        return "VPN peer IP successfully updated to (#{peer["publicIp"].green})"
       end
     end
   end
@@ -81,14 +81,14 @@ class Updater
       end
       @peers.each do |peer|
         if peer["name"] == name
-          puts "Current peer IP (#{peer["publicIp"].red}) out-of-date!"
+          puts "VPN peer (#{name.red}) IP (#{peer["publicIp"].red}) out-of-date! Should be (#{@current_ip.green})"
           peer["publicIp"] = @current_ip
         end
       end
       @updated_peers = api_call(@vpn_peers_url, "PUT", @peers)
       check_updated_peers(@updated_peers)
     else
-      return "Peer public IP (#{@current_ip.green}) already up-to-date!"
+      return "VPN peer (#{name.green}) public IP (#{@current_ip.green}) already up-to-date!"
     end
   end
 
