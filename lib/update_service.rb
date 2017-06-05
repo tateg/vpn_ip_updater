@@ -4,7 +4,7 @@
 # Written by Tate Galbraith
 # June 2017
 
-require './vpn_ip_updater_refactor.rb'
+require './vpn_ip_updater.rb'
 require 'colorize'
 require 'optparse'
 
