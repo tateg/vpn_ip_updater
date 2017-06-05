@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# AutoVPN IP Updater (Refactor 1)
+# AutoVPN IP Updater Core
 # Written by Tate Galbraith
 # June 2017
 
