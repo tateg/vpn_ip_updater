@@ -7,36 +7,62 @@
 require 'httparty'
 require 'json'
 require 'colorize'
+require 'ipaddress'
 
 class Updater
   
   def initialize(api_key)
     @api_key = api_key
     @api_url = "https://dashboard.meraki.com/api/v0"
+    @default_provider = "http://whatismyip.akamai.com"
   end
 
   # Setup GET and PUT API calls
   def api_call(endpoint_url, http_method, options_hash={})
     @req_headers = {"X-Cisco-Meraki-API-Key" => @api_key, "Content-Type" => "application/json"}
     @options = {:headers => @req_headers, :body => options_hash.to_json}
+    # Setup HTTP request types
     case http_method
     when "GET"
       @response = HTTParty.get("#{@api_url}/#{endpoint_url}", @options)
+      raise "Error 404 - Is the ID entered correct?" if @response.code == 404
       return JSON.parse(@response.body)
     when "GET_JSON"
       @response = HTTParty.get("#{@api_url}/#{endpoint_url}", @options)
+      raise "Error 404 - Is the ID entered correct?" if @response.code == 404
       return @response.body
     when "PUT"
       @response = HTTParty.put("#{@api_url}/#{endpoint_url}", @options)
+      raise "Error 404 - Is the ID entered correct?" if @response.code == 404
       return JSON.parse(@response.body)
+    else
+      raise "Invalid HTTP method passed - only GET, GET_JSON & PUT supported!"
     end
   end
 
   # Return the current public IP this machine is using
-  def get_current_ip
-    @provider = "http://whatismyip.akamai.com"
-    @current_ip = HTTParty.get(@provider).body 
-    return @current_ip
+  # Optional to change public IP provider to another site
+  # Spoof desktop browser headers for consistency
+  def get_current_ip(provider = @default_provider)
+    begin
+      @spoof_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+      @provider_response = HTTParty.get(provider, headers: {"User-Agent" => @spoof_agent})
+      @current_ip = @provider_response.body
+      raise "Provider Error (403) - #{provider} does not allow scraping, try another." if @provider_response.code == 403
+      raise "Provider Error (404) - #{provider} is not available!" if @provider_response.code == 404
+      # Check if response is valid first, if not try extracting from page as last resort
+      unless IPAddress::valid_ipv4?(@current_ip)
+        @extract_ip = IPAddress::valid_ipv4?(IPAddress::IPv4::extract(@current_ip).to_s)
+        if @extract_ip
+          @current_ip = IPAddress::IPv4::extract(@current_ip).to_s
+          return @current_ip
+        end
+        raise "Provider Error (IP) - Bad IP address returned from provider or page does not contain valid IP"
+      end
+      return @current_ip
+    rescue SocketError # Rescue if TCP connection to site fails outright
+      raise "Provider Error (connect) - #{provider} connection failed or no response."
+    end
   end
 
   # Return all organization names and IDs associated with this api key
