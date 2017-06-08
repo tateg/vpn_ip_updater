@@ -27,4 +27,6 @@ There is additional functionality built into the service as well. You can get in
     -i, --update-interval SECONDS    Number of seconds between IP checks
 
     -j, --json                       Output results as raw JSON
+    -P, --provider URL               Change public IP provider
+
 ```
