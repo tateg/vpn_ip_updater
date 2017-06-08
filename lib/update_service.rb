@@ -47,6 +47,9 @@ OptionParser.new do |parser|
   parser.on("-j", "--json", "Output results as raw JSON") do |j|
     options[:json] = j
   end
+  parser.on("-P", "--provider URL", "Change public IP provider") do |p|
+    options[:provider] = p
+  end
 
   parser.separator ""
 end.parse!
@@ -80,17 +83,37 @@ end
 
 # Update peer one time if all three arguments except interval are provided
 if ([:key, :organization, :peer].all? {|k| options.key? k}) and !options.key?(:interval)
-  puts "Updating named VPN peer public IP".yellow
-  puts updater.update_vpn_peer_ip(options[:organization], options[:peer])
+  @single_vpn_update_message = "Updating named VPN peer public IP".yellow
+  # Switch to specified provider if argument passed
+  if options.key?(:provider)
+    puts @method_message
+    puts "Using specified provider (#{options[:provider].green})"
+    puts updater.update_vpn_peer_ip(options[:organization], options[:peer], options[:provider])
+  else
+    puts @method_message
+    puts updater.update_vpn_peer_ip(options[:organization], options[:peer])
+  end
 end
 
 # Update peer on loop at interval if all four arguments provided
+# "animate" sleep dots in for loop
 if ([:key, :organization, :peer, :interval].all? {|k| options.key? k})
+  raise "Interval must be greater than 0!".red if options[:interval] == 0
   loop do
     puts "Updating named VPN peer public IP on #{options[:interval]} second interval".yellow
-    puts @loop_update = updater.update_vpn_peer_ip(options[:organization], options[:peer])
+    if options.key?(:provider) # Check if a different provider is specified
+      puts "Using specified provider (#{options[:provider].green})"
+      puts @loop_update = updater.update_vpn_peer_ip(options[:organization], options[:peer], options[:provider])
+    else
+      puts @loop_update = updater.update_vpn_peer_ip(options[:organization], options[:peer])
+    end
     exit if @loop_update.include? "VPN peer not found"
-    sleep options[:interval]
+    print "Waiting #{options[:interval]} seconds".yellow
+    for i in 1..options[:interval]
+      print ".".yellow
+      sleep 1
+    end
+    puts ""
   end
 end
 

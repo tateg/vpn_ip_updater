@@ -45,9 +45,12 @@ class Updater
   # Spoof desktop browser headers for consistency
   def get_current_ip(provider = @default_provider)
     begin
-      @spoof_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-      @provider_response = HTTParty.get(provider, headers: {"User-Agent" => @spoof_agent})
+      @browser_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) 
+                        AppleWebKit/537.36 (KHTML, like Gecko) 
+                        Chrome/58.0.3029.110 Safari/537.36"
+      @provider_response = HTTParty.get(provider, headers: {"User-Agent" => @browser_agent})
       @current_ip = @provider_response.body
+      raise "Provider Error (Response) - #{provider} returned nothing." if @current_ip.nil?
       raise "Provider Error (403) - #{provider} does not allow scraping, try another." if @provider_response.code == 403
       raise "Provider Error (404) - #{provider} is not available!" if @provider_response.code == 404
       # Check if response is valid first, if not try extracting from page as last resort
@@ -97,9 +100,9 @@ class Updater
   end
 
   # Update a specific VPN peer's public IP address with this machine's current public IP
-  def update_vpn_peer_ip(org_id, name)
+  def update_vpn_peer_ip(org_id, name, provider = @default_provider)
     @vpn_peers_url = "/organizations/#{org_id}/thirdPartyVPNPeers"
-    if get_current_ip != get_vpn_peer_ip(org_id, name)
+    if get_current_ip(provider) != get_vpn_peer_ip(org_id, name)
       @peers = get_vpn_peers(org_id)
       # Catch if name not valid peer
       if !@peers.any? {|hash| hash["name"].include?(name)}
