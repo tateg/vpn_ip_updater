@@ -39,6 +39,23 @@ class Updater
       raise "Invalid HTTP method passed - only GET, GET_JSON & PUT supported!"
     end
   end
+  
+  # Ensure scraped IP information is valid
+  # Returns valid IP address if present
+  def validate_and_extract_ip(address)
+    @validation_err = "Provider Error (IP) - Bad IP or page does not contain valid IP"
+    begin
+      if IPAddress::valid_ipv4?(address)
+        return address
+      elsif IPAddress::valid_ipv4?(IPAddress::IPv4::extract(address).to_s)
+        return IPAddress::IPv4::extract(address).to_s
+      else
+        raise @validation_err
+      end
+    rescue ArgumentError => e
+      raise @validation_err
+    end
+  end
 
   # Return the current public IP this machine is using
   # Optional to change public IP provider to another site
@@ -49,19 +66,11 @@ class Updater
                         AppleWebKit/537.36 (KHTML, like Gecko) 
                         Chrome/58.0.3029.110 Safari/537.36"
       @provider_response = HTTParty.get(provider, headers: {"User-Agent" => @browser_agent})
-      @current_ip = @provider_response.body
-      raise "Provider Error (Response) - #{provider} returned nothing." if @current_ip.nil?
+      @provider_body = @provider_response.body
+      raise "Provider Error (Response) - #{provider} returned nothing." if @provider_body.nil?
       raise "Provider Error (403) - #{provider} does not allow scraping, try another." if @provider_response.code == 403
       raise "Provider Error (404) - #{provider} is not available!" if @provider_response.code == 404
-      # Check if response is valid first, if not try extracting from page as last resort
-      unless IPAddress::valid_ipv4?(@current_ip)
-        @extract_ip = IPAddress::valid_ipv4?(IPAddress::IPv4::extract(@current_ip).to_s)
-        if @extract_ip
-          @current_ip = IPAddress::IPv4::extract(@current_ip).to_s
-          return @current_ip
-        end
-        raise "Provider Error (IP) - Bad IP address returned from provider or page does not contain valid IP"
-      end
+      @current_ip = validate_and_extract_ip(@provider_body)
       return @current_ip
     rescue SocketError # Rescue if TCP connection to site fails outright
       raise "Provider Error (connect) - #{provider} connection failed or no response."
